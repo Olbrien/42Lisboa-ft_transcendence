@@ -44,13 +44,13 @@ dev_env:
 
 #### ######## #### #### ######## #### #### ######## #### #### ######## #### #### ######## ####
 
-VOLUMES_LOCATION = ./srcs/volumes/
+VOLUMES_LOCATION = ./srcs/volumes
 
 create_volumes:
-	@mkdir -p ./srcs/volumes
-	@mkdir -p ${VOLUMES_LOCATION}/postgres
-	@mkdir -p ${VOLUMES_LOCATION}/postgres/shared
+	@mkdir -p ${VOLUMES_LOCATION}
 	@mkdir -p ${VOLUMES_LOCATION}/postgres/shared/data
+	@mkdir -p ${VOLUMES_LOCATION}/nestjs/node_modules
+	@mkdir -p ${VOLUMES_LOCATION}/nestjs/src
 
 volumes_up:
   # This sleep is necessary because it takes time for postgres to extract
