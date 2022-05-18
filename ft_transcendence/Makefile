@@ -26,7 +26,7 @@ re:		fclean up
 #### ######## #### #### ######## #### #### ######## #### #### ######## #### #### ######## ####
 
 prod: prod_env up
-dev:  dev_env up_detached volumes_up
+dev:  dev_env up_detached
 
 prod_env:
 	@if [ -f srcs/.env ]; then \
@@ -51,12 +51,10 @@ create_volumes:
 	@mkdir -p ${VOLUMES_LOCATION}/nestjs/node_modules
 	@mkdir -p ${VOLUMES_LOCATION}/nestjs/src
 
-volumes_up:
-  # This sleep is necessary because it takes time for postgres to extract
-	@sleep 2
+volume_up:
 	@docker exec -it postgres chmod -R 777 "/var/lib/postgresql/"
 
-volumes_down:
+volume_down:
 	@sudo rm -fr ./srcs/volumes/*
 
 #### ######## #### #### ######## #### #### ######## #### #### ######## #### #### ######## ####
@@ -78,6 +76,7 @@ info:
 	@printf "\n  \033[1;36m'make down' to docker-compose down.\e[0m";
 	@printf "\n  \033[1;36m'make clean' to docker-compose down + remove docker volume.\e[0m";
 	@printf "\n  \033[1;36m'make fclean' to docker-compose down + docker system prune -a --volumes.\e[0m\n";
-	@printf "\n  \033[4;29mTo delete volume folders use 'make volumes_down'\e[0m \n\n\n\n";
+	@printf "\n  \033[4;29mTo set volume folders permissions use 'make volume_up'\e[0m";	
+	@printf "\n  \033[4;29mTo delete volume folders use 'make volume_down'\e[0m \n\n\n";
 
 #### ######## #### #### ######## #### #### ######## #### #### ######## #### #### ######## ####
