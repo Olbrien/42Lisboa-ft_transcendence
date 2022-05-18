@@ -4,3 +4,6 @@
 
 # Volumes
 /ft_transcendence/srcs/volumes
+
+# node_modules
+/ft_transcendence/srcs/requirements/nestjs/conf/node_modules

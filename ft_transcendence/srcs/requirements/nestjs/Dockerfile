@@ -1,5 +1,19 @@
 FROM node:latest
 
-WORKDIR /app
+# Create app directory
+WORKDIR /usr/src/app
 
-CMD /bin/bash
+# Install app dependencies
+COPY /conf/package*.json ./
+
+# Just doing npm@latest doesn't install the necessary dependencies.
+# You need to npm install it first then upgrade it.
+RUN npm install
+RUN npm install -g npm@latest
+
+# Bundle app source
+COPY /conf/ .
+
+RUN npm run build
+
+CMD [ "node", "dist/main" ]
