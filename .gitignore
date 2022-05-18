@@ -1,0 +1,6 @@
+# Dot files
+.editorconfig
+.env
+
+# Volumes
+/ft_transcendence/srcs/volumes
