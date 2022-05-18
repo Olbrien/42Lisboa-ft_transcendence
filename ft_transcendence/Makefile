@@ -47,8 +47,7 @@ dev_env:
 VOLUMES_LOCATION = ./srcs/volumes
 
 create_volumes:
-	@mkdir -p ${VOLUMES_LOCATION}
-	@mkdir -p ${VOLUMES_LOCATION}/postgres/shared/data
+	@mkdir -p ${VOLUMES_LOCATION}/postgres/data
 	@mkdir -p ${VOLUMES_LOCATION}/nestjs/node_modules
 	@mkdir -p ${VOLUMES_LOCATION}/nestjs/src
 
