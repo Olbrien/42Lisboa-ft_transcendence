@@ -48,11 +48,10 @@ VOLUMES_LOCATION = ./srcs/volumes
 
 create_volumes:
 	@mkdir -p ${VOLUMES_LOCATION}/postgres/data
-	@mkdir -p ${VOLUMES_LOCATION}/nestjs/node_modules
-	@mkdir -p ${VOLUMES_LOCATION}/nestjs/src
 
 volume_up:
 	@docker exec -it postgres chmod -R 777 "/var/lib/postgresql/"
+	@docker exec -it nestjs chmod -R 777 "/usr/src/app/"
 
 volume_down:
 	@sudo rm -fr ./srcs/volumes/*
