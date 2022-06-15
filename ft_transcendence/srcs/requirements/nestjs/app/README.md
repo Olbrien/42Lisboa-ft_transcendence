@@ -36,7 +36,7 @@ If you get ESLint or Prettier errors use:
 
 After installing everything you can create your project.\
 Using --skip-git is useful if you want to upload to GitHub without creating merge conflicts.
-  
+
   `nest new app --skip-git`
 
 # Step 2: Environment Variables
@@ -53,7 +53,7 @@ project.
   2 :  import { ConfigModule } from '@nestjs/config';
   3 :  import { AppController } from './app.controller';
   4 :  import { AppService } from './app.service';
-  5 :  
+  5 :
   6 :  @Module({
   7 :    imports: [
   8 :      ConfigModule.forRoot({
@@ -79,7 +79,7 @@ project.
   8 :      }
   9 :    }
   10:  }
-  11:  
+  11:
   12:  export {};
 ```
 
@@ -119,13 +119,13 @@ all the required enviroments.
   src/env/env.schema.ts
 
   1 :  import * as joi from '@hapi/joi';
-  2 :  
+  2 :
   3 :  export const envValidationSchema = joi.object({
   4 :    POSTGRES_USER: joi.string().required(),
   5 :    POSTGRES_PASSWORD: joi.string().required(),
   6 :    POSTGRES_DB: joi.string().required(),
   7 :    POSTGRES_HOST_PORT: joi.string().required(),
-  8 :  
+  8 :
   9 :    ENVIRONMENT: joi.string().required(),
   10:  });
 ```
@@ -139,7 +139,7 @@ all the required enviroments.
   4 :  import { AppController } from './app.controller';
   5 :  import { AppService } from './app.service';
   7 :  import { envValidationSchema } from './env/env.schema';
-  8 :  
+  8 :
   9 :  @Module({
   10:    imports: [
   11:      ConfigModule.forRoot({
@@ -169,7 +169,7 @@ src
 
 # Step 4: Database Configuration
 
-  `npm install typeorm@0.2.45 @nestjs/typeorm@8.0.3`
+  `npm install typeorm@0.2.45 @nestjs/typeorm@8.0.3`\
   `npm install pg`
 
 We need to connect to our Postgres database. To do so, we use typeorm.
@@ -180,7 +180,7 @@ This is because we are only allowed to do 'docker-compose up', cannot set the mi
 In production mode, it's good habit to leave it false, and use migrations instead.
 We have migrations set but we're not using them.
 
-We use forRootAsync() instead of forRoot() because in that way we can to consume dependency injection.
+We use forRootAsync() instead of forRoot() because in that way we can use dependency injection.
 
 ```
   src/config/typeorm.config.ts
@@ -189,14 +189,14 @@ We use forRootAsync() instead of forRoot() because in that way we can to consume
   2 :    TypeOrmModuleAsyncOptions,
   3 :    TypeOrmModuleOptions,
   4 :  } from '@nestjs/typeorm';
-  5 :  
+  5 :
   6 :  export const typeOrmAsyncConfig: TypeOrmModuleAsyncOptions = {
   7 :    imports: [],
   8 :    inject: [],
   9 :    useFactory: async (): Promise<TypeOrmModuleOptions> => {
   10:      return {
   11:        logging: true,
-  12:  
+  12:
   13:        type: 'postgres',
   14:        host: 'postgres',
   15:        port: parseInt(process.env.POSTGRES_HOST_PORT),
@@ -225,7 +225,7 @@ We use forRootAsync() instead of forRoot() because in that way we can to consume
   5 :  import { AppService } from './app.service';
   6 :  import { typeOrmAsyncConfig } from './config/typeorm.config';
   7 :  import { envValidationSchema } from './env/env.schema';
-  8 :  
+  8 :
   9 :  @Module({
   10:    imports: [
   11:      ConfigModule.forRoot({
@@ -256,3 +256,123 @@ src
   │   └── env.schema.ts
   └── main.ts
 ```
+
+# Step 5: Setting Migrations
+
+  `npm install -g ts-node@10.7.0`
+
+Even though we're setting migrations we won't be using it.\
+We have 'synchronize: true', instead of 'synchronize: false'.\
+It means that each change we do in our files, it will change the tables automatically.
+
+To use migrations, you need to change 'synchronize:true' to 'synchronize:false'.
+
+Also you need to create a 'typeorm.config-migrations.ts', because package.json will need
+this TypeOrmModuleOptions
+
+```
+  src/modules/user/entities/user.entity.ts
+
+  1 :  import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+  2 :
+  3 :  @Entity()
+  4 :  export class User {
+  5 :    @PrimaryGeneratedColumn()
+  6 :    id: number;
+  7 :
+  8 :    @Column()
+  9 :    firstName: string;
+  10:
+  11:    @Column()
+  12:    lastName: string;
+  13:
+  14:    @Column()
+  15:    isActive: boolean;
+  16:  }
+```
+
+```
+  src/config/typeorm.config-migrations.ts
+
+  1 :  import { TypeOrmModuleOptions } from '@nestjs/typeorm';
+  2 :
+  3 :  const typeOrmConfig: TypeOrmModuleOptions = {
+  4 :      logging: process.env.DEBUG === 'true', // if DEBUG === true then this is true.
+  5 :
+  6 :    type: 'postgres',
+  7 :    host: 'postgres',
+  8 :    port: parseInt(process.env.POSTGRES_HOST_PORT),
+  9 :    username: process.env.POSTGRES_USER,
+  10:    password: process.env.POSTGRES_PASSWORD,
+  11:    database: process.env.POSTGRES_DB,
+  12:    synchronize: false,
+  13:    entities: [__dirname + '/../modules/**/entities/*.entity.js'],
+  14:    migrations: [__dirname + '/../migrations/*{.ts, .js}'],
+  15:    migrationsTableName: 'migrations',
+  16:    cli: {
+  17:      migrationsDir: __dirname + '/../migrations',
+  18:    },
+  19:  };
+  20:
+  21:  export default typeOrmConfig;
+```
+
+```
+  package.json
+
+  {
+    (...)
+
+    scripts": {
+      (...)
+
+      "migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config src/config/typeorm.config-migrations.ts migration:generate -d ./src/migrations -n",
+      "migration:create": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config src/config/typeorm.config-migrations.ts migration:create -d ./src/migrations -n",
+      "migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config src/config/typeorm.config-migrations.ts migration:run",
+      "migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js --config src/config/typeorm.config-migrations.ts migration:revert"
+    }
+  }
+```
+
+```
+Tree:
+
+src
+  ├── app.controller.spec.ts
+  ├── app.controller.ts
+  ├── app.module.ts
+  ├── app.service.ts
+  ├── config
+  |   ├── typeorm.config-migrations.ts
+  │   └── typeorm.config.ts
+  ├── env
+  │   ├── env.d.ts
+  │   └── env.schema.ts
+  └── main.ts
+  ├── migrations
+  │   └── 1655331240879-alooo.ts
+  └── modules
+      └── user
+          ├── entities
+          │   └── user.entity.ts
+          └── user.module.ts
+```
+
+
+
+All commands have to be ran inside the docker nestjs.\
+`docker exec -it nestjs bash`
+
+```
+  Create:   npm run migration:create 'name'
+            Creates a new empty migration file.
+  Generate: npm run migration:generate 'name'
+            Creates a new migration based on your entities and your migration files.
+  Run:      npm run migration:run
+            Runs all pending migrations.
+  Show:     npm run migration:show
+            Shows all migrations and whether they have been run or not.
+  Revert:   npm run migration:revert
+            Reverts last executed migration.
+```
+
