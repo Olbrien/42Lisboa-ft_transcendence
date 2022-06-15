@@ -3,14 +3,19 @@
 all: clear message info
 
 up: create_volumes
-		cd srcs && docker-compose up --build;
+	@cd srcs && docker-compose up --build;
 
 up_detached: create_volumes
-		cd srcs && docker-compose up -d --build;
+	@cd srcs && docker-compose up -d --build;
 
 down:
 	@echo "Down!";
 	@cd srcs && docker-compose down
+
+restart:
+	@docker exec -it nestjs /usr/local/bin/npm run prebuild;
+	@docker stop $$(docker ps -aq);
+	@docker start $$(docker ps -aq);
 
 clean:
 	@echo "Clean!";
@@ -72,6 +77,7 @@ message:
 info:	
 	@printf "\n  \033[1;32mFor Production use 'make prod'.\e[0m";
 	@printf "\n  \033[1;31mFor Development use 'make dev'. \e[0m \n";
+	@printf "\n  \033[1;36m'make restart' to delete '/dist/' from @nestjs' + docker stop + docker start.\e[0m";
 	@printf "\n  \033[1;36m'make down' to docker-compose down.\e[0m";
 	@printf "\n  \033[1;36m'make clean' to docker-compose down + remove docker volume.\e[0m";
 	@printf "\n  \033[1;36m'make fclean' to docker-compose down + docker system prune -a --volumes.\e[0m\n";

@@ -19,7 +19,7 @@ services:
     ports:
       - ${NESTJS_HOST_PORT}:3000
     volumes:
-      - ./requirements/nestjs/app-volume/:/usr/src/app
+      - ./requirements/nestjs/app/:/usr/src/app
       - /usr/src/app/node_modules
 
   postgres-database:

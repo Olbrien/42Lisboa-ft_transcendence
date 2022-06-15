@@ -7,13 +7,13 @@ COPY /tools/startup.sh /tmp/
 WORKDIR /usr/src/app
 
 # Copy app dependencies
-COPY /app-volume/package*.json ./
+COPY /app/package*.json ./
 
 # You need to npm install
 RUN npm install
 
 # Bundle app source
-COPY /app-volume/ .
+COPY /app/ .
 
 RUN npm run build
 
