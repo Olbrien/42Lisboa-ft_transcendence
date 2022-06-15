@@ -8,7 +8,7 @@ export const typeOrmAsyncConfig: TypeOrmModuleAsyncOptions = {
   inject: [],
   useFactory: async (): Promise<TypeOrmModuleOptions> => {
     return {
-      logging: true,
+      logging: process.env.DEBUG === 'true', // if DEBUG === true then this is true.
 
       type: 'postgres',
       host: 'postgres',

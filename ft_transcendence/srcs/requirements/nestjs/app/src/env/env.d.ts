@@ -7,6 +7,7 @@ declare global {
       POSTGRES_HOST_PORT: string;
 
       ENVIRONMENT: string;
+      DEBUG: string;
     }
   }
 }

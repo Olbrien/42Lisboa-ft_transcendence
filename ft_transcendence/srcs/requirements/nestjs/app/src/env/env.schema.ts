@@ -7,4 +7,5 @@ export const envValidationSchema = joi.object({
   POSTGRES_HOST_PORT: joi.string().required(),
 
   ENVIRONMENT: joi.string().required(),
+  DEBUG: joi.string().required(),
 });
