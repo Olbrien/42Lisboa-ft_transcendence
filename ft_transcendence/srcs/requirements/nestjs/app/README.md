@@ -1,4 +1,4 @@
-# Step 0: Extensions
+# Extensions
 
 This is a list of useful extensions:
 
@@ -28,7 +28,7 @@ If you get ESLint or Prettier errors use:
   `ctrl + shift + p`\
   `ESLint: Fix all auto-fixable Problems`
 
-# Step 1: Setting Up
+# Setting Up
 
   `apt install nodejs`\
   `apt install npm`\
@@ -39,7 +39,7 @@ Using --skip-git is useful if you want to upload to GitHub without creating merg
 
   `nest new app --skip-git`
 
-# Step 2: Environment Variables
+# Environment Variables
 
   `npm install @nestjs/config`
 
@@ -106,7 +106,7 @@ Example:
   console.log(process.env.POSTGRES_USER);
 ```
 
-# Step 3: Config (Environment) Schema Validation
+# Config (Environment) Schema Validation
 
   `npm install @hapi/joi`\
   `npm install -D @types/hapi__joi`
@@ -167,7 +167,7 @@ src
   └── main.ts
 ```
 
-# Step 4: Database Configuration
+# Database Configuration
 
   `npm install typeorm@0.2.45 @nestjs/typeorm@8.0.3`\
   `npm install pg`
@@ -257,9 +257,9 @@ src
   └── main.ts
 ```
 
-# Step 5: Setting Migrations
+# Setting Migrations
 
-  `npm install -g ts-node@10.7.0`
+  `npm install ts-node@10.7.0`
 
 Even though we're setting migrations we won't be using it.\
 We have 'synchronize: true', instead of 'synchronize: false'.\
@@ -376,3 +376,292 @@ All commands have to be ran inside the docker nestjs.\
             Reverts last executed migration.
 ```
 
+# DTOs (Data Transfer Objects)
+
+A data transfer object is an object that carries data between processes.
+
+- DTO doesn't have expect for storage, retrievel, serialization and deserialization of
+it's own data.
+- Can be defined using an interface or class. Recommended use is class accordingly to
+NestJS documentation.
+- Not mandatory, but should be used always.
+
+```
+  create-logger.dto.ts:
+
+  1:  export class CreateTaskDto {
+  2:      title: string;
+  3:      description: string;
+  4:  }
+```
+
+```
+  logger.controller.ts:
+
+  1:  @Controller('tasks')
+  2:  export class TasksController {
+  3:    constructor(private tasksService: TasksService) {}
+  4:    @Post()
+  5:    createTask(@Body() createTaskDto: CreateTaskDto): Task {
+  6:      return this.tasksService.createTask(createTaskDto);
+  7:    }
+  8:  }
+```
+
+```
+Tree:
+
+src
+├── app.module.ts
+├── main.ts
+└── logger
+    ├── logger.module.ts
+    ├── logger.redirection.ts
+    ├── logger.controller.ts
+    └── dto
+        └──create-logger.dto.ts
+```
+
+
+# Pipes
+
+  `npm install class-validator`\
+  `npm install class-transformer`
+
+- Pipes operate on the arguments to be processed by the route handler, before the
+handler is called.
+- Can perform data transformation or data validation.
+- Can throw exceptions.
+- Pipes can be asynchronous.
+
+Handler-level pipes:
+
+```
+  This pipe will process all parameters for the incoming requests.
+
+    1:  @Post()
+    2:  @UsePipes(SomePipe)
+    3:  createTask(
+    4:      @Body('description') description
+    5:  ) {
+    6:      // code
+    7:  }
+```
+
+Parameter-level pipes:
+
+```
+  Only the specified parameter will be processed.
+
+    1:  @Post()
+    2:  createTask(
+    3:      @Body('description', SomePipe) descrption
+    4:  ) {
+    5:      // code
+    6:  }
+```
+
+Global pipes:
+
+```
+  Defined at application level and will be applied to any incoming request.
+
+    main.ts:
+
+    1:  async function bootstrap() {
+    2:      const app = await NestFactory.create(ApplicationModule);
+    3:      app.useGlobalPipes(SomePipe);
+    4:      await app.listen(3000);
+    5:  }
+    6:  bootstrap();
+
+    src/modules/tasks/dto/create-task.dto.ts:
+
+    1:  import { IsNotEmpty } from 'class-validator';
+    2:
+    3:  export class CreateTaskDto {
+    4:    @IsNotEmpty()
+    5:    title: string;
+    6:
+    7:    @IsNotEmpty()
+    8:    description: string;
+    9:  }
+```
+
+Explanation:
+
+    You have your handler @Get, @Post whatever it may be. The client sends a request with
+    parameters, body, queries, whatever.
+    But you want only the parameter description to be of string, the parameter id to be of
+    numbers.
+    That's what pipes do, they check the arguments, and sees if they are correct.
+    If they are correct they are successful and  sends the correct response, if not they send
+    another response.
+
+
+# Hash:
+
+    https://emn178.github.io/online-tools/sha256.html
+
+Password hashing is used to verify the integrity of your password, sent during login, against the stored hash so that your actual password never has to be stored.\
+You insert your password '123456' it will give an hash '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'.\
+When you login with your account, you give the password '123456' and it will save not your password, but the has of that password.
+
+The problem is that, if you hash the password '123456' the hash will ALWAYS be '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92'.\
+The problem here, is that, even though the password has a long weird combination, there is something called Rainbow Table.\
+Rainbow Table, is a database that has all hashes for any common password, meaning hashing is not completely safe.
+
+
+## Salt:
+
+  `npm install bcrypt`
+
+A cryptographic salt is made up of random bits added to each password instance before its hashing.\
+It means, that your password is '123456', the Salt, will add random characters before your password.\
+You insert '123456' but in reality it will be something like 'a\1X<23_123456'.\
+It makes your password much more secure this way.
+
+
+```
+  1 :  import * as bcrypt from 'bcrypt';
+  2 :
+  3 :  @EntityRepository(User)
+  4 :  export class UsersRepository extends Repository<User> {
+  5 :    async createUser(): Promise<void> {
+  6 :      const password = '123456'
+  7 :
+  8 :      const salt = await bcrypt.genSalt();
+  9 :      const hashedPassword = await bcrypt.hash(password, salt);
+  10:
+  11:      const newUser = this.create({
+  12:        username: username,
+  13:        password: hashedPassword,
+  14:      });
+  15:
+  16:       await this.save(newUser);
+  27:
+  28:    }
+  29:  }
+
+  Output: $2b$10$cfs7LObX4YJyiS8kOnmLMuSs/cAsis4HoNJuRpI3QRNWviFE2PRZm
+```
+
+```
+  1 :  import * as bcrypt from 'bcrypt';
+  2 :
+  3 :  @Injectable()
+  4 :  export class AuthService {
+  5 :    constructor(
+  6 :      @InjectRepository(UsersRepository)
+  7 :      private usersRepository: UsersRepository,
+  8 :    ) {}
+  9 :
+  10:    async signIn(authCredentialsDto: AuthCredentialsDto): Promise<string> {
+  11:      const { username, password } = authCredentialsDto;
+  12:
+  13:      const user = await this.usersRepository.findOne({ username });
+  14:
+  15:      if (user && (await bcrypt.compare(password, user.password))) {
+  16:        return 'Success';
+  17:      } else {
+  18:        throw new UnauthorizedException(
+  19:          'Please check in your login credentials!',
+  20:        );
+  21:      }
+  22:    }
+  23:  }
+```
+
+# JSON Web Tokens (JWT):
+
+  `npm install @nestjs/jwt`\
+  `npm install @nestjs/passport`\
+  `npm install passport`\
+  `npm install passport-jwt`
+
+A JSON web token (JWT) is a URL-safe method of transferring claims between two parties.\
+The JWT encodes the claims in JavaScript object notation and optionally provides space for a signature or full encryption.
+
+JWTs can be used in various ways:
+
+- Authentication: When a user successfully logs in using their credentials, an ID token
+is returned. According to the OpenID Connect (OIDC) specs, an ID token is always a
+JWT.
+
+- Authorization: Once a user is successfully logged in, an application may request
+to access routes, services, or resources (e.g., APIs) on behalf of that user. To do
+so, in every request, it must pass an Access Token, which may be in the form of a JWT.
+Single Sign-on (SSO) widely uses JWT because of the small overhead of the format,
+and its ability to easily be used across different domains.
+
+
+```
+  src/auth/auth.module.ts:
+
+  1 :  import { PassportModule } from '@nestjs/passport';
+  2 :  import { JwtModule } from '@nestjs/jwt';
+  3 :
+  4 :  @Module({
+  5 :    imports: [
+  6 :      PassportModule.register({ defaultStrategy: 'jwt' }),
+  7 :      JwtModule.register({
+  8 :        secret: 'topsecret123',
+  9 :        signOptions: {
+  10:          expiresIn: 3600,
+  11:        },
+  12:      }),
+  13:      TypeOrmModule.forFeature([UsersRepository]),
+  14:    ],
+  15:    providers: [AuthService],
+  16:    controllers: [AuthController],
+  17:  })
+  18:  export class AuthModule {}
+```
+
+```
+  src/auth/auth.module.ts:
+
+  1:  export interface JwtPayload {
+  2:    username: string;
+  3:  }
+```
+
+```
+  src/auth/auth.service.ts:
+
+  1 :  import * as bcrypt from 'bcrypt';
+  2 :  import { JwtService } from '@nestjs/jwt';
+  3 :  import { JwtPayload } from './jwt-payload.interface';
+  4 :
+  5 :  @Injectable()
+  6 :  export class AuthService {
+  7 :  constructor(
+  8 :      @InjectRepository(UsersRepository)
+  9 :      private usersRepository: UsersRepository,
+  10:      private jwtService: JwtService,
+  11:  ) {}
+  12:
+  13:  async signIn(
+  14:      authCredentialsDto: AuthCredentialsDto,
+  15:  ): Promise<{ accessToken: string }> {
+  16:      const { username, password } = authCredentialsDto;
+  17:
+  18:      const user = await this.usersRepository.findOne({ username });
+  19:
+  20:      if (user && (await bcrypt.compare(password, user.password))) {
+  21:      const payload: JwtPayload = { username };
+  22:      const accessToken: string = await this.jwtService.sign(payload);
+  23:
+  24:      return { accessToken };
+  25:      } else {
+  26:         throw new UnauthorizedException(
+  27:          'Please check in your login credentials!',
+  28:         );
+  29:      }
+  30:    }
+  31:  }
+```
+
+```
+  Output: { "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRpc2FudG9zc3MiLCJpYXQiOjE2NTU1MTM5NTgsImV4cCI6MTY1NTUxNzU1OH0.HILaYwIwUfcMgz4MXU6wQ_DsdKyte5Dp7ZOYbG3tF-Q" }
+```
