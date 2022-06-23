@@ -4,7 +4,7 @@ NestJS Structure:
 
                       ***************************************************************************
                       *                               Server                                    *
-                      * *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *
+                      ***************************************************************************
                       *               *            *                 *           *              *
     ************      *  Validate Da- * Make sure  * Route the req-  * Run some  * Acess a dat- *
     * Request  * ---> *  ta contained * the user   * uest to a part- * business  * abase        *
