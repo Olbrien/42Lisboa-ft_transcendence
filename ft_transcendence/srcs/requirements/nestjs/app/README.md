@@ -1,3 +1,56 @@
+# NestJS
+
+NestJS Structure:
+
+                      ***************************************************************************
+                      *                               Server                                    *
+                      * *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *  *
+                      *               *            *                 *           *              *
+    ************      *  Validate Da- * Make sure  * Route the req-  * Run some  * Acess a dat- *
+    * Request  * ---> *  ta contained * the user   * uest to a part- * business  * abase        *
+    ************      *  in the requ- * is authen- * icular function * logic     *              *
+                      *  est          * ticated    *                 *           *              *
+    ************      *               *            *                 *           *              *
+    * Response * <--- *    [Pipe]     *  [Guard]   *  [Controller]   * [Service] * [Repository] *
+    ************      *               *            *                 *           *              *
+                      ***************************************************************************
+                      *      ---->    *    ---->   *     ----->      *   ---->   *              *
+                      ***************************************************************************
+
+Parts of NestJS:
+
+- Controllers: Handles incoming requests.
+- Services: Handles data access and business logic.
+- Modules: Groups together code.
+- Pipes: Validates incoming data.
+- Filters: Handles errors that occur during request handling.
+- Guards: Handles authentication.
+- Interceptors: Adds extra logic to incoming requests or outgoing responses.
+- Repositories: Handles data stored in a DB.
+
+
+## Controllers
+
+Request:
+
+```
+  POST /messages/12345?validate=true HTTP/1.1
+  Host: localhost:3000
+  Content-Type: application/json
+  {
+      "content": "hi there!";
+  }
+```
+
+```
+  @Param('id')                 is 12345
+  @Query()                     is validate=true
+  @Headers()                  are Host / Content-Type
+  @Body()                      is "content": "hi there!";
+```
+
+
+
 # Extensions
 
 This is a list of useful extensions:
@@ -423,6 +476,107 @@ src
 ```
 
 
+# Dependency Injection
+
+Dependencies are services or objects that a class needs to perform its function.\
+Dependency injection, or DI, is a design pattern in which a class requests dependencies
+from external sources rather than creating them.
+
+We have our NestJS Structure:
+
+  Controller --->  Service ---> Repository
+
+The Controller depends on the Service, in which the Service depends on the Repository.\
+To have the object of the Service in your Controller you need to inject it first.
+
+```
+  src/messages/messages.module.ts:
+
+  import { Module } from '@nestjs/common';
+  import { MessagesController } from './messages.controller';
+  import { MessagesRepository } from './messages.repository';
+  import { MessagesService } from './messages.service';
+
+  @Module({
+  controllers: [MessagesController],
+  providers: [MessagesService, MessagesRepository],
+  })
+  export class MessagesModule {}
+```
+
+```
+  src/messages/messages.controller.ts:
+
+  1 :  import { MessagesService } from './messages.service';
+  2 :
+  3 :  @Controller('messages')
+  4 :  export class MessagesController {
+  5 :    constructor(public messagesService: MessagesService) {}
+  6 :
+  7 :    @Get()
+  8 :    listMessages() {
+  9 :      return this.messagesService.findAll();
+  10:    }
+  11:
+  12:    @Post()
+  13:    createMessage(@Body() body: CreateMessageDto) {
+  14:      const { content } = body;
+  15:      return this.messagesService.create(content);
+  16:    }
+  17:  }
+```
+
+```
+  src/messages/messages.service.ts:
+
+  1 :  import { Injectable } from '@nestjs/common';
+  2 :  import { MessagesRepository } from './messages.repository';
+  3 :
+  4 :  @Injectable()
+  5 :  export class MessagesService {
+  6 :     onstructor(public messagesRepo: MessagesRepository) {}
+  7 :
+  8 :     findAll() {
+  9 :        return this.messagesRepo.findAll();
+  10:     }
+  11:
+  12:     create(content: string) {
+  13:        return this.messagesRepo.create(content);
+  14:     }
+  15:  }
+```
+
+```
+  src/messages/messages.repository.ts:
+
+  1 :  import { Injectable } from '@nestjs/common';
+  2 :  import { readFile, writeFile } from 'fs/promises';
+  3 :
+  4 :  @Injectable()
+  5 :  export class MessagesRepository {
+  6 :    async findAll() {
+  7 :      const contents = await readFile('messages.json', 'utf8');
+  8 :      const messages = JSON.parse(contents);
+  9 :
+  10:      return messages;
+  11:    }
+  12:
+  13:    async create(content: string) {
+  14:      const contents = await readFile('messages.json', 'utf8');
+  15:      const messages = JSON.parse(contents);
+  16:
+  17:      const id = Math.floor(Math.random() * 999) + 1;
+  18:
+  19:      messages[id] = {
+  20:        id: id,
+  21:        content: content,
+  22:      };
+  23:
+  24:      await writeFile('messages.json', JSON.stringify(messages));
+  25:    }
+  26:  }
+```
+
 # Pipes
 
   `npm install class-validator`\
@@ -434,7 +588,7 @@ handler is called.
 - Can throw exceptions.
 - Pipes can be asynchronous.
 
-Handler-level pipes:
+## Handler-level pipes:
 
 ```
   This pipe will process all parameters for the incoming requests.
@@ -448,7 +602,7 @@ Handler-level pipes:
     7:  }
 ```
 
-Parameter-level pipes:
+## Parameter-level pipes:
 
 ```
   Only the specified parameter will be processed.
@@ -461,7 +615,7 @@ Parameter-level pipes:
     6:  }
 ```
 
-Global pipes:
+## Global pipes (We mainly use these):
 
 ```
   Defined at application level and will be applied to any incoming request.
@@ -488,16 +642,69 @@ Global pipes:
     9:  }
 ```
 
-Explanation:
+## Explanation:
 
-    You have your handler @Get, @Post whatever it may be. The client sends a request with
-    parameters, body, queries, whatever.
-    But you want only the parameter description to be of string, the parameter id to be of
-    numbers.
-    That's what pipes do, they check the arguments, and sees if they are correct.
-    If they are correct they are successful and  sends the correct response, if not they send
-    another response.
+You have your handler @Get, @Post whatever it may be. The client sends a request with
+parameters, body, queries, whatever.\
+But you want only the parameter description to be of string, the parameter id to be of
+numbers.\
+That's what pipes do, they check the arguments, and sees if they are correct.\
+If they are correct they are successful and  sends the correct response, if not they send
+another response.
 
+
+## Using it:
+
+First you need to install class-validator and class-transformer.\
+It is requested by the global pipes to install it.\
+`npm install class-validator`\
+`npm install class-transformer`
+
+You need to set global pipes.
+
+```
+  main.ts:
+
+  1:  async function bootstrap() {
+  2:      const app = await NestFactory.create(ApplicationModule);
+  3:      app.useGlobalPipes(new ValidationPipe());
+  4:      await app.listen(3000);
+  5:  }
+  6:  bootstrap();
+```
+
+Then create a new folder inside the module you want to use global pipes, folder is called\
+'dtos'.
+
+Inside that folder you can create a file name 'create-messages.dto.ts'.
+
+```
+  src/messages/dtos/create-messages.dto.ts:
+
+  1:  import { IsString } from 'class-validator';
+  2:
+  3:  export class CreateMessageDto {
+  4:    @IsString()
+  5:    content: string;
+  6:  }
+```
+
+Now you just need to set it to the controller param.
+
+```
+  src/messages/messages.controller.ts:
+
+  1 :  import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+  2 :  import { CreateMessageDto } from './dtos/create-messages.dto';
+  3 :
+  4 :  @Controller('messages')
+  5 :  export class MessagesController {
+  6 :    @Post()
+  7 :    createMessage(@Body() body: CreateMessageDto) {
+  8 :      console.log(body);
+  9 :    }
+  10:  }
+```
 
 # Hash:
 
@@ -577,7 +784,8 @@ It makes your password much more secure this way.
   `npm install @nestjs/jwt`\
   `npm install @nestjs/passport`\
   `npm install passport`\
-  `npm install passport-jwt`
+  `npm install passport-jwt`\
+  `npm install @types/passport-jwt`
 
 A JSON web token (JWT) is a URL-safe method of transferring claims between two parties.\
 The JWT encodes the claims in JavaScript object notation and optionally provides space for a signature or full encryption.
@@ -664,4 +872,93 @@ and its ability to easily be used across different domains.
 
 ```
   Output: { "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRpc2FudG9zc3MiLCJpYXQiOjE2NTU1MTM5NTgsImV4cCI6MTY1NTUxNzU1OH0.HILaYwIwUfcMgz4MXU6wQ_DsdKyte5Dp7ZOYbG3tF-Q" }
+```
+
+# Logging
+
+When something goes wrong we need a way to know what happened, when it happened, why
+it happened.
+
+There are different types of logs:
+
+- Log:      General Purpose.
+- Warning:  Handling issues that are not fatal or destructive.
+- Error:    Handling issues that are fatal or destructive.
+- Debug:    Useful information that can help us debug the logic in case of
+            error / warning.
+- Verbose:  Usually "Too much information". Useful for to know the insights.
+
+```
+  main.ts:
+
+  1 :  import { ValidationPipe } from '@nestjs/common';
+  2 :  import { NestFactory } from '@nestjs/core';
+  3 :  import { AppModule } from './app.module';
+  4 :  import { Logger } from '@nestjs/common';
+  5 :
+  6 :  async function bootstrap() {
+  7 :    const logger = new Logger('Main', { timestamp: true });
+  8 :
+  9 :    const app = await NestFactory.create(AppModule);
+  10:
+  11:    const port = 3000;
+  12:    await app.listen(port);
+  13:
+  14:    logger.log(`Application listening on port = ${port}`);
+  15:  }
+  16:  bootstrap();
+```
+
+```
+  /src/modules/tasks/tasks.controller.ts:
+
+  1 :  import { Logger} from '@nestjs/common';
+  2 :
+  3 :  @Controller('tasks')
+  4 :  @UseGuards(AuthGuard())
+  5 :  export class TasksController {
+  6 :    private logger = new Logger('TasksController', { timestamp: true });
+  7 :
+  8 :    constructor(private tasksService: TasksService) {}
+  9 :
+  10:    @Get()
+  11:    getTasks(
+  12:      @Query() filterDto: GetTaskFilterDto,
+  13:      @GetUser() user: User,
+  14:    ): Promise<Task[]> {
+  15:      this.logger.verbose(
+  16:        `User "${user.username}" retrieving all tasks. Filters: ${JSON.stringify(
+  17:          filterDto,
+  18:        )}`,
+  19:      );
+  20:      return this.tasksService.getTasks(filterDto, user);
+  21:    }
+  22:  }
+```
+
+```
+  /src/modules/tasks/repository/task.repository.ts
+
+  1 :  import { Logger } from '@nestjs/common';
+  2 :
+  3 :  @EntityRepository(Task)
+  4 :  export class TaskRepository extends Repository<Task> {
+  5 :    private logger = new Logger('TasksRepository', { timestamp: true });
+  6 :
+  7 :    async getTasks(filterDto: GetTaskFilterDto, user: User): Promise<Task[]> {
+  8 :
+  9 :      (...)
+  10:
+  11:      try {
+  12:        const tasks = await query.getMany();
+  13:        return tasks;
+  14:      } catch (error) {
+  15:        this.logger.error(
+  16:          `Failed to get task for user ${user.username}`,
+  17:          error.stack,
+  18:        );
+  19:        throw new InternalServerErrorException();
+  20:      }
+  21:    }
+  22:  }
 ```
