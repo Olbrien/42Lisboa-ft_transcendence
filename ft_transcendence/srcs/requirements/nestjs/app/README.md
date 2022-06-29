@@ -962,3 +962,147 @@ There are different types of logs:
   21:    }
   22:  }
 ```
+
+# Serialization:
+
+Serialization is a process that happens before objects are returned in a network
+response. This is an appropriate place to provide rules for transforming and sanitizing
+the data to be returned to the client. For example, sensitive data like passwords should
+always be excluded from the response. Or, certain properties might require additional
+transformation, such as sending only a subset of properties of an entity.
+
+Example:
+
+    You want to request @GET an ID that has the email, name and password.
+    You don't want to show the password, you want to be hidden and not being sent.
+    That's what serialization is.
+
+## Interceptor:
+
+Interceptors have a set of useful capabilities which are inspired by the Aspect Oriented
+Programming (AOP) technique. They make it possible to:
+
+- Bind extra logic before / after method execution
+- Transform the result returned from a function
+- Transform the exception thrown from a function
+- Extend the basic function behavior
+- Completely override a function depending on specific conditions (e.g., for
+  caching purposes)
+
+
+## Custom Interceptor (Hide password):
+
+```
+  src/users/user.entity.ts:
+
+  // This creates the entity (table)
+
+  1 :  import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+  2 :
+  3 :  @Entity()
+  4 :  export class User {
+  5 :    @PrimaryGeneratedColumn()
+  6 :    id: number;
+  7 :
+  8 :    @Column()
+  9 :    email: string;
+  10:
+  11:    @Column()
+  12:    password: string;
+  13:  }
+```
+
+```
+  src/users/dtos/user.dto.ts:
+
+  // This creates the dto with the data you want to expose
+
+  1 :  import { Expose } from 'class-transformer';
+  2 :
+  3 :  export class UserDto {
+  4 :    @Expose()
+  5 :    id: number;
+  6 :
+  7 :    @Expose()
+  8 :    email: string;
+  9 :  }
+```
+
+```
+  src/interceptors/serialize.interceptors.ts:
+
+  // This creates the custom interceptor
+
+  1 :  import { CallHandler, ExecutionContext, NestInterceptor, UseInterceptors} from '@nestjs/common';
+  2 :  import { plainToInstance } from 'class-transformer';
+  3 :  import { map, Observable } from 'rxjs';
+  4 :
+  5 :  interface ClassConstructor {        // This is for Serialize() to be of a Class only
+  6 :    new (...args: any[]): unknown;
+  7 :  }
+  8 :
+  9 :  export function Serialize(dto: ClassConstructor) {
+  10:    return UseInterceptors(new SerializeInterceptor(dto));
+  11:  }
+  12:
+  13:  export class SerializeInterceptor implements NestInterceptor {
+  14:    constructor(private dto: any) {}
+  15:
+  16:    intercept(
+  17:      context: ExecutionContext,
+  18:      next: CallHandler<any>,
+  19:    ): Observable<any> | Promise<Observable<any>> {
+  20:      // Run something before the request is handled
+  21:
+  22:      return next.handle().pipe(
+  23:        map((data: any) => {
+  24:          // Run something before the response is sent out
+  25:          return plainToInstance(this.dto, data, {
+  26:            excludeExtraneousValues: true,
+  27:          });
+  28:        }),
+  29:      );
+  30:    }
+  31:  }
+```
+
+```
+  src/users/users.controller.ts
+
+  // Now we add @Serialize(UserDto) to or the entire class, or Requests
+
+  1 :  import { Body, Controller, Query } from '@nestjs/common';
+  2 :  import { Serialize } from 'src/interceptors/serialize.interceptor';
+  3 :  import { CreateUserDto } from './dtos/create-user.dto';
+  4 :  import { UpdateUserDto } from './dtos/update-user.dto';
+  5 :  import { UserDto } from './dtos/user.dto';
+  6 :  import { UsersService } from './users.service';
+  7 :
+  8 :  @Controller('auth')
+  9 :  @Serialize(UserDto) // Or here to apply to everything
+  10:  export class UsersController {
+  11:    constructor(private usersService: UsersService) {}
+  12:
+  13:    @Post('/signup')
+  14:    createUser(@Body() body: CreateUserDto) {
+  15:      this.usersService.create(body.email, body.password);
+  16:    }
+  17:
+  18:    @Serialize(UserDto) // Or here to apply to single methods
+  19:    @Get('/:id')
+  20:    async findUser(@Param('id') id: string) {
+  21:      const user = await this.usersService.findOne(parseInt(id));
+  22:      if (!user) {
+  23:        throw new NotFoundException('user not found');
+  24:      }
+  25:
+  26:      return user;
+  27:    }
+  28:
+  29:    @Serialize(UserDto) // Or here to apply to single methods
+  30:    @Get()
+  31:    findAllUsers(@Query('email') email: string) {
+  32:      return this.usersService.find(email);
+  33:    }
+  34:  }
+```
