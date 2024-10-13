@@ -1,9 +1,9 @@
-# Dot files
-.editorconfig
+# IDEs and ENV
+.vscode
 .env
+.env.prod
+.env.dev
+.editorconfig
 
-# Volumes
-/ft_transcendence/srcs/volumes
-
-# node_modules
-/ft_transcendence/srcs/requirements/nestjs/conf/node_modules
+# Volumes don't need to be pushed
+/volumes
